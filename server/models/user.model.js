@@ -21,6 +21,22 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    skills: {
+        type: [string],
+        required: true,
+    },
+    email: {
+        type: String,
+        required: true,
+    },
+    phone: {
+        type: String,
+        required: true,
+    },
+    previous_meeting: {
+        type: [string],
+        required: true,
+    }
 },
     {timestamps: true}
 );
