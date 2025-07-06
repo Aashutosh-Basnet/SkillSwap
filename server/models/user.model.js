@@ -19,7 +19,6 @@ const userSchema = new mongoose.Schema({
     },
     avatar: {
         type: String,
-        required: true,
     },
     skills: {
         type: [string],
@@ -35,7 +34,6 @@ const userSchema = new mongoose.Schema({
     },
     previous_meeting: {
         type: [string],
-        required: true,
     }
 },
     {timestamps: true}
