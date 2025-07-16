@@ -1,25 +1,21 @@
-import React from 'react'
+"use client";
 
-const page = () => {
+import React from "react";
+import SidePanel from "@/app/components/auth/SidePanel";
+import RegisterForm from "@/app/components/auth/RegisterForm";
+
+export default function RegisterPage() {
   return (
-    <div>
-        <form action="">
-            <div>
-                <label htmlFor="email">Email:</label>
-                <input type="email" id="email" name="email" required />
-            </div>
-            <div>
-                <label htmlFor="password">Password:</label>
-                <input type="password" id="password" name="password" required />
-            </div>
-            <div>
-                <label htmlFor="confirm-password">Confirm Password:</label>
-                <input type="password" id="confirm-password" name="confirm-password" required />
-            </div>
-            <button type="submit">Register</button>
-        </form>
+    <div className="flex min-h-screen bg-gray-900">
+      {/* Left side - SidePanel */}
+      <div className="hidden lg:flex lg:w-1/2">
+        <SidePanel />
+      </div>
+      
+      {/* Right side - RegisterForm */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center">
+        <RegisterForm />
+      </div>
     </div>
-  )
+  );
 }
-
-export default page

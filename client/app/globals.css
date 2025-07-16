@@ -1,4 +1,28 @@
 @import "tailwindcss";
+
+@theme {
+    --font-family-sans: ["Poppins", "sans-serif"];
+}
+
+@layer base {
+    body {
+        @apply bg-[#f0efff] text-gray-800;
+    }
+}
+
 @plugin "daisyui" {
     themes: light --default, dark --prefersdark;
   }
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}

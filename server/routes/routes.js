@@ -1,12 +1,17 @@
-import express from 'express';
-import userRoutes from "./user.route"
-import messageRoutes from "./message.route"
-import authRoutes from "./auth.route"
+import { Router } from "express";
+import authRoutes from "./auth.route.js";
+import protectedRoutes from "./protected.js";
+import exploreRoutes from "./explore.route.js";
 
-const router = express.Router();
+const router = Router();
 
-router.use("/user", userRoutes);
-router.use("/message", messageRoutes);
+// Auth routes (login, register, logout)
 router.use("/auth", authRoutes);
+
+// Protected routes (require authentication)
+router.use("/protected", protectedRoutes);
+
+// Explore routes
+router.use("/explore", exploreRoutes);
 
 export default router;

@@ -8,6 +8,7 @@ const userSchema = new mongoose.Schema({
     username: {
         type: String,
         required: true,
+        unique: true,
     },
     password: {
         type: String,
@@ -17,11 +18,8 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-    avatar: {
-        type: String,
-    },
     skills: {
-        type: [string],
+        type: [String],
         required: true,
     },
     email: {
@@ -33,7 +31,7 @@ const userSchema = new mongoose.Schema({
         required: true,
     },
     previous_meeting: {
-        type: [string],
+        type: [String],
     }
 },
     {timestamps: true}
