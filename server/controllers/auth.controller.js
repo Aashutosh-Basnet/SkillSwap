@@ -3,13 +3,46 @@ import User from "../models/user.model.js";
 import { generateToken } from "../utilities/asyncHandler.utility.js";
 
 export const register = async (req, res) => {
-  const { fullname, username, password, gender, skills, email, phone, previous_meetings } = req.body;
+  const { fullname, username, password, gender, about, learning_skills, teaching_skills, email, phone, previous_meeting } = req.body;
 
   try {
     // Input validation
     if (!fullname || !username || !password || !email) {
       return res.status(400).json({ 
         message: "Required fields missing",
+        error: "VALIDATION_ERROR" 
+      });
+    }
+
+    // Validate required skills arrays
+    if (!learning_skills || !Array.isArray(learning_skills) || learning_skills.length === 0) {
+      return res.status(400).json({ 
+        message: "At least one learning skill is required",
+        error: "VALIDATION_ERROR" 
+      });
+    }
+
+    if (!teaching_skills || !Array.isArray(teaching_skills) || teaching_skills.length === 0) {
+      return res.status(400).json({ 
+        message: "At least one teaching skill is required",
+        error: "VALIDATION_ERROR" 
+      });
+    }
+
+    // Filter out empty strings from skills arrays
+    const filteredLearningSkills = learning_skills.filter(skill => skill && skill.trim() !== '');
+    const filteredTeachingSkills = teaching_skills.filter(skill => skill && skill.trim() !== '');
+
+    if (filteredLearningSkills.length === 0) {
+      return res.status(400).json({ 
+        message: "At least one valid learning skill is required",
+        error: "VALIDATION_ERROR" 
+      });
+    }
+
+    if (filteredTeachingSkills.length === 0) {
+      return res.status(400).json({ 
+        message: "At least one valid teaching skill is required",
         error: "VALIDATION_ERROR" 
       });
     }
@@ -32,16 +65,21 @@ export const register = async (req, res) => {
       username,
       password: hashedPassword,
       gender,
-      skills,
+      about: about || '',
+      learning_skills: filteredLearningSkills,
+      teaching_skills: filteredTeachingSkills,
       email,
       phone,
-      previous_meetings,
+      previous_meeting: previous_meeting || [],
     });
 
     await newUser.save();
+    console.log('Registration - New user saved with ID:', newUser._id);
+    console.log('Registration - New user object:', { id: newUser._id, username: newUser.username });
     
     // Generate token for immediate login after registration
     const token = generateToken(newUser);
+    console.log('Registration - Generated token for user ID:', newUser._id);
     
     res.status(201).json({ 
       message: "User created successfully",
@@ -50,7 +88,11 @@ export const register = async (req, res) => {
         id: newUser._id,
         username: newUser.username,
         fullname: newUser.fullname,
-        email: newUser.email
+        email: newUser.email,
+        avatar: newUser.avatar,
+        about: newUser.about,
+        learning_skills: newUser.learning_skills,
+        teaching_skills: newUser.teaching_skills
       }
     });
   } catch (error) {
@@ -114,7 +156,9 @@ export const login = async (req, res) => {
         id: existingUser._id,
         username: existingUser.username,
         fullname: existingUser.fullname,
-        email: existingUser.email
+        email: existingUser.email,
+        avatar: existingUser.avatar,
+        about: existingUser.about
       }
     });
   } catch (error) {

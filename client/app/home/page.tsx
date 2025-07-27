@@ -9,7 +9,7 @@ import PopularCourses from "../components/home/PopularCourses";
 import SearchBar from "../components/home/SearchBar";
 import TopAuthors from "../components/home/TopAuthors";
 
-const HomePage = () => {
+const Home = () => {
   return (
     <div>
       <Navbar />
@@ -37,4 +37,4 @@ const HomePage = () => {
   );
 };
 
-export default HomePage;
+export default Home; 

@@ -3,7 +3,8 @@
 class AuthService {
   constructor() {
     this.tokenKey = 'authToken';
-    this.baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+    // Use Next.js API routes instead of direct backend calls
+    this.baseURL = '/api';
   }
 
   // Store token in localStorage

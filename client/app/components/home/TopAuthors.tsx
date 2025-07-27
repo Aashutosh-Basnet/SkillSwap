@@ -30,7 +30,7 @@ const TopAuthors = () => {
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold">Top Authors</h2>
+        <h2 className="text-xl font-bold">History</h2>
         <a href="#" className="text-sm font-semibold text-purple-600">
           See all
         </a>

@@ -14,9 +14,13 @@ const generateToken = (user) => {
         throw new Error('JWT_SECRET is not defined in environment variables');
     }
     
+    const userId = user._id || user.id;
+    console.log('generateToken - Input user:', { _id: user._id, id: user.id, username: user.username });
+    console.log('generateToken - Using user ID:', userId);
+    
     return jwt.sign(
         {
-            id: user._id || user.id,
+            id: userId,
             username: user.username,
         },
         process.env.JWT_SECRET,

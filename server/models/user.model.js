@@ -14,11 +14,25 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    avatar: {
+        type: String,
+        required: false,
+        default: null,
+    },
+    about: {
+        type: String,
+        required: false,
+        default: '',
+    },
     gender: {
         type: String,
+        required: false,
+    },
+    learning_skills: {
+        type: [String],
         required: true,
     },
-    skills: {
+    teaching_skills: {
         type: [String],
         required: true,
     },
@@ -28,7 +42,7 @@ const userSchema = new mongoose.Schema({
     },
     phone: {
         type: String,
-        required: true,
+        required: false,
     },
     previous_meeting: {
         type: [String],

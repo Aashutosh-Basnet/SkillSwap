@@ -7,8 +7,11 @@ import { TSignInSchema, signInSchema } from "@/lib/types";
 import Link from 'next/link';
 import { FaGoogle, FaGithub } from 'react-icons/fa';
 import { FiMail, FiLock } from 'react-icons/fi';
+import { useRouter } from 'next/navigation';
+import authService from '@/lib/auth';
 
 export default function LoginForm(){
+    const router = useRouter();
     const {
         register,
         handleSubmit,
@@ -20,41 +23,19 @@ export default function LoginForm(){
     });
 
     const onSubmit = async (data: TSignInSchema) => {
-        try {
-            const response = await fetch("/api/auth/login", {
-                method: "POST",
-                body: JSON.stringify(data),
-                headers: {
-                    "Content-Type": "application/json",
-                },
-            });
-            
-            const responseData = await response.json();
-            
-            if (!response.ok) {
-                if (responseData.message) {
-                    if (responseData.error === "USER_NOT_FOUND") {
-                        setError("username", { type: "server", message: "User not found" });
-                    } else if (responseData.error === "INVALID_CREDENTIALS") {
-                        setError("password", { type: "server", message: "Invalid password" });
-                    } else {
-                        alert(responseData.message);
-                    }
-                } else {
-                    alert("Login failed!");
-                }
-                return;
-            }
+        const result = await authService.login(data.username, data.password);
 
-            if (responseData.token) {
-                localStorage.setItem('token', responseData.token);
-                localStorage.setItem('user', JSON.stringify(responseData.user));
-                alert("Login successful!");
-                window.location.href = '/';
+        if (result.success) {
+            alert("Login successful!");
+            router.push('/home');
+        } else {
+            if (result.error === "USER_NOT_FOUND") {
+                setError("username", { type: "server", message: "User not found" });
+            } else if (result.error === "INVALID_CREDENTIALS") {
+                setError("password", { type: "server", message: "Invalid password" });
+            } else {
+                alert(result.message || "Login failed!");
             }
-        } catch (error) {
-            console.error("Login error:", error);
-            alert("Something went wrong!");
         }
     };
 
