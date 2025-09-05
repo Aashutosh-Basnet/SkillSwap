@@ -63,24 +63,25 @@ export const signInSchema = z.object({
 
 export const profileUpdateSchema = z.object({
     fullname: z.string()
-        .min(2, "Full name must be at least 2 characters")
-        .optional(),
+        .min(2, "Full name must be at least 2 characters"),
     
     gender: z.enum(["male", "female", "other", "prefer-not-to-say"], {
         errorMap: () => ({ message: "Please select a gender" }),
     }).optional(),
 
-    avatar: z.string().optional(),
+    avatar: z.string().nullable().optional(),
 
     about: z.string()
         .max(500, "About section must be less than 500 characters")
         .optional(),
     
     learning_skills: z.array(z.string().min(1, "Skill cannot be empty"))
-        .min(1, "Please add at least one skill you want to learn"),
+        .min(1, "Please add at least one skill you want to learn")
+        .optional(),
     
     teaching_skills: z.array(z.string().min(1, "Skill cannot be empty"))
-        .min(1, "Please add at least one skill you can teach"),
+        .min(1, "Please add at least one skill you can teach")
+        .optional(),
 });
 
 export type TProfileUpdateSchema = z.infer<typeof profileUpdateSchema>;

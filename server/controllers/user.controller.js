@@ -1,5 +1,74 @@
 import User from "../models/user.model.js";
 
+// Get all users (for recommendation system)
+export const getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find({}).select('-password');
+    
+    res.json(users.map(user => ({
+      _id: user._id,
+      fullname: user.fullname,
+      username: user.username,
+      email: user.email,
+      phone: user.phone,
+      gender: user.gender,
+      avatar: user.avatar,
+      about: user.about,
+      learning_skills: user.learning_skills,
+      teaching_skills: user.teaching_skills,
+      previous_meeting: user.previous_meeting,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
+    })));
+  } catch (error) {
+    console.error("Get all users error:", error);
+    res.status(500).json({
+      message: "Error retrieving users",
+      error: "INTERNAL_SERVER_ERROR"
+    });
+  }
+};
+
+// Get user by ID (for recommendation system)
+export const getUserById = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    console.log('getUserById - Looking for user ID:', userId);
+    
+    const user = await User.findById(userId).select('-password');
+    console.log('getUserById - Found user:', user ? 'YES' : 'NO');
+    
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+        error: "USER_NOT_FOUND"
+      });
+    }
+
+    res.json({
+      _id: user._id,
+      fullname: user.fullname,
+      username: user.username,
+      email: user.email,
+      phone: user.phone,
+      gender: user.gender,
+      avatar: user.avatar,
+      about: user.about,
+      learning_skills: user.learning_skills,
+      teaching_skills: user.teaching_skills,
+      previous_meeting: user.previous_meeting,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
+    });
+  } catch (error) {
+    console.error("Get user by ID error:", error);
+    res.status(500).json({
+      message: "Error retrieving user",
+      error: "INTERNAL_SERVER_ERROR"
+    });
+  }
+};
+
 export const getUserProfile = async (req, res) => {
   try {
     const userId = req.user.id;
