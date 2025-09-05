@@ -75,8 +75,8 @@ const ProfilePage = () => {
           // Set form values properly
           setValue('fullname', data.user.fullname);
           setValue('gender', data.user.gender as "male" | "female" | "other" | "prefer-not-to-say" | undefined);
-          setValue('avatar', data.user.avatar);
-          setValue('about', data.user.about);
+          setValue('avatar', data.user.avatar || '');
+          setValue('about', data.user.about || '');
           setValue('learning_skills', data.user.learning_skills);
           setValue('teaching_skills', data.user.teaching_skills);
           
@@ -110,17 +110,33 @@ const ProfilePage = () => {
   };
 
   const onSubmit = async (data: TProfileUpdateSchema) => {
+    console.log('🚀 FORM SUBMIT TRIGGERED');
     console.log('Form submitted with data:', data);
     console.log('Form errors:', errors);
     console.log('Current user:', user);
     console.log('Editing learning skills:', editingLearningSkills);
     console.log('Editing teaching skills:', editingTeachingSkills);
+    
+    // Prevent form submission if already saving
+    if (saving) {
+      console.log('❌ Already saving, preventing duplicate submission');
+      return;
+    }
+    
     setSaving(true);
+    console.log('✅ Setting saving state to true');
+    
     try {
+      console.log('🔍 Starting validation...');
+      
       // Use the editing skills state instead of form data
       const filteredLearningSkills = editingLearningSkills.filter(skill => skill.trim() !== '');
       const filteredTeachingSkills = editingTeachingSkills.filter(skill => skill.trim() !== '');
 
+      console.log('Filtered learning skills:', filteredLearningSkills);
+      console.log('Filtered teaching skills:', filteredTeachingSkills);
+
+      // Validate skills before submitting
       if (filteredLearningSkills.length === 0) {
         alert('Please add at least one learning skill');
         setSaving(false);
@@ -133,75 +149,167 @@ const ProfilePage = () => {
         return;
       }
 
+      // Validate fullname
+      if (!data.fullname || data.fullname.trim().length < 2) {
+        alert('Full name must be at least 2 characters long');
+        setSaving(false);
+        return;
+      }
+
+      console.log('✅ Validation passed');
+
       // Handle avatar conversion to base64 if new file selected
       let avatarData = data.avatar;
       if (avatarFile) {
-        avatarData = await convertFileToBase64(avatarFile);
+        console.log('🖼️ Converting avatar file...');
+        try {
+          avatarData = await convertFileToBase64(avatarFile);
+          console.log('✅ Avatar converted successfully');
+        } catch (avatarError) {
+          console.error('❌ Error converting avatar:', avatarError);
+          alert('Error processing avatar image');
+          setSaving(false);
+          return;
+        }
       }
 
       const submitData = {
-        ...data,
+        fullname: data.fullname.trim(),
+        gender: data.gender,
         avatar: avatarData,
+        about: data.about || '',
         learning_skills: filteredLearningSkills,
         teaching_skills: filteredTeachingSkills
       };
 
-      console.log('Sending data to API:', submitData);
+      console.log('📤 Sending data to API:', submitData);
+      console.log('🔗 Making API request...');
       
       const response = await authService.makeAuthenticatedRequest('/user/profile', {
         method: 'PUT',
         body: JSON.stringify(submitData),
       });
 
+      console.log('📥 API response received');
       console.log('API response status:', response.status);
-      const result = await response.json();
-      console.log('API response data:', result);
+      console.log('API response ok:', response.ok);
+      
+      let result;
+      try {
+        result = await response.json();
+        console.log('API response data:', result);
+      } catch (jsonError) {
+        console.error('❌ Error parsing response JSON:', jsonError);
+        alert('Invalid response from server');
+        setSaving(false);
+        return;
+      }
 
       if (response.ok) {
+        console.log('✅ Profile update successful!');
+        console.log('Updated user data:', result.user);
+        
+        // Update user state with the response data
         setUser(result.user);
+        
+        // Update form values to match saved data
+        setValue('fullname', result.user.fullname);
+        setValue('gender', result.user.gender);
+        setValue('avatar', result.user.avatar);
+        setValue('about', result.user.about);
+        setValue('learning_skills', result.user.learning_skills);
+        setValue('teaching_skills', result.user.teaching_skills);
+        
+        // Reset editing skills state to match the saved data
+        setEditingLearningSkills(result.user.learning_skills.length > 0 ? result.user.learning_skills : ['']);
+        setEditingTeachingSkills(result.user.teaching_skills.length > 0 ? result.user.teaching_skills : ['']);
+        
+        // Clear avatar file state
+        setAvatarFile(null);
+        setAvatarPreview(result.user.avatar || null);
+        
+        console.log('🎉 Exiting edit mode...');
         setIsEditing(false);
         alert('Profile updated successfully!');
       } else {
-        alert(result.message || 'Failed to update profile');
+        console.error('❌ API Error:', result);
+        alert(result.message || `Failed to update profile (${response.status})`);
       }
     } catch (error) {
-      console.error('Error updating profile:', error);
+      console.error('❌ Error updating profile:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error('Error details:', errorMessage);
-      alert(`Something went wrong while updating your profile: ${errorMessage}`);
+      
+      // Provide more specific error messages
+      if (errorMessage.includes('Authentication failed')) {
+        alert('Your session has expired. Please log in again.');
+        router.push('/login');
+      } else if (errorMessage.includes('No authentication token')) {
+        alert('Authentication required. Please log in again.');
+        router.push('/login');
+      } else {
+        alert(`Something went wrong while updating your profile: ${errorMessage}`);
+      }
     } finally {
+      console.log('🏁 Setting saving state to false');
       setSaving(false);
     }
   };
 
   const addLearningSkill = () => {
-    setEditingLearningSkills([...editingLearningSkills, '']);
+    const newSkills = [...editingLearningSkills, ''];
+    setEditingLearningSkills(newSkills);
+    
+    // Update form value
+    const filteredSkills = newSkills.filter(skill => skill.trim() !== '');
+    setValue('learning_skills', filteredSkills);
   };
 
   const addTeachingSkill = () => {
-    setEditingTeachingSkills([...editingTeachingSkills, '']);
+    const newSkills = [...editingTeachingSkills, ''];
+    setEditingTeachingSkills(newSkills);
+    
+    // Update form value
+    const filteredSkills = newSkills.filter(skill => skill.trim() !== '');
+    setValue('teaching_skills', filteredSkills);
   };
 
   const removeLearningSkill = (index: number) => {
     const newSkills = editingLearningSkills.filter((_, i) => i !== index);
     setEditingLearningSkills(newSkills.length > 0 ? newSkills : ['']);
+    
+    // Update form value
+    const filteredSkills = newSkills.filter(skill => skill.trim() !== '');
+    setValue('learning_skills', filteredSkills);
   };
 
   const removeTeachingSkill = (index: number) => {
     const newSkills = editingTeachingSkills.filter((_, i) => i !== index);
     setEditingTeachingSkills(newSkills.length > 0 ? newSkills : ['']);
+    
+    // Update form value
+    const filteredSkills = newSkills.filter(skill => skill.trim() !== '');
+    setValue('teaching_skills', filteredSkills);
   };
 
   const updateLearningSkill = (index: number, value: string) => {
     const newSkills = [...editingLearningSkills];
     newSkills[index] = value;
     setEditingLearningSkills(newSkills);
+    
+    // Also update the form value to keep validation in sync
+    const filteredSkills = newSkills.filter(skill => skill.trim() !== '');
+    setValue('learning_skills', filteredSkills);
   };
 
   const updateTeachingSkill = (index: number, value: string) => {
     const newSkills = [...editingTeachingSkills];
     newSkills[index] = value;
     setEditingTeachingSkills(newSkills);
+    
+    // Also update the form value to keep validation in sync
+    const filteredSkills = newSkills.filter(skill => skill.trim() !== '');
+    setValue('teaching_skills', filteredSkills);
   };
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -234,6 +342,7 @@ const ProfilePage = () => {
     setAvatarFile(null);
     setAvatarPreview(null);
     setValue('avatar', '');
+    console.log('🗑️ Avatar removed, form value set to empty string');
   };
 
   const cancelEdit = () => {
@@ -255,8 +364,18 @@ const ProfilePage = () => {
     setIsEditing(true);
     if (user) {
       // Ensure editing skills are properly set
-      setEditingLearningSkills(user.learning_skills.length > 0 ? user.learning_skills : ['']);
-      setEditingTeachingSkills(user.teaching_skills.length > 0 ? user.teaching_skills : ['']);
+      const learningSkills = user.learning_skills.length > 0 ? user.learning_skills : [''];
+      const teachingSkills = user.teaching_skills.length > 0 ? user.teaching_skills : [''];
+      
+      setEditingLearningSkills(learningSkills);
+      setEditingTeachingSkills(teachingSkills);
+      
+      // Also initialize form values for validation
+      setValue('learning_skills', user.learning_skills);
+      setValue('teaching_skills', user.teaching_skills);
+      
+      console.log('🎬 Started editing mode');
+      console.log('Initial skills set:', { learningSkills, teachingSkills });
     }
   };
 
@@ -278,10 +397,13 @@ const ProfilePage = () => {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-4 sm:p-6 md:p-8">
-      <form onSubmit={(e) => {
-        console.log('Form submit event triggered');
-        handleSubmit(onSubmit)(e);
-      }}>
+      <form onSubmit={handleSubmit(onSubmit, (errors) => {
+        console.log('❌ FORM VALIDATION FAILED');
+        console.log('Validation errors:', errors);
+        console.log('Avatar error details:', errors.avatar);
+        console.log('Current form values:', getValues());
+        console.log('Current editing skills:', { editingLearningSkills, editingTeachingSkills });
+      })}>
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* Left Column: User Info */}
@@ -365,6 +487,14 @@ const ProfilePage = () => {
                     <button
                       type="submit"
                       disabled={saving}
+                      onClick={() => {
+                        // Update form with current skills before submission
+                        const filteredLearningSkills = editingLearningSkills.filter(skill => skill.trim() !== '');
+                        const filteredTeachingSkills = editingTeachingSkills.filter(skill => skill.trim() !== '');
+                        
+                        setValue('learning_skills', filteredLearningSkills);
+                        setValue('teaching_skills', filteredTeachingSkills);
+                      }}
                       className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50"
                     >
                       <Save size={16} />
@@ -378,6 +508,7 @@ const ProfilePage = () => {
                       <X size={16} />
                       Cancel
                     </button>
+
                   </div>
                 )}
               </div>

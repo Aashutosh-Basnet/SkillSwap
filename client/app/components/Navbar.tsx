@@ -1,21 +1,101 @@
+"use client";
+
 import React from 'react'
-import { UserPen } from 'lucide-react';
+import { UserPen, Home, Info, Zap, Compass, Menu, X } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 
 const Navbar = () => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+
+  const navItems = [
+    { href: '/home', label: 'Home', icon: <Home size={18} /> },
+    { href: '/about', label: 'About', icon: <Info size={18} /> },
+    { href: '/skills', label: 'Skills', icon: <Zap size={18} /> },
+    { href: '/explore', label: 'Explore', icon: <Compass size={18} /> },
+  ];
+
   return (
-    <nav className="hidden lg:flex justify-between items-center p-4">
-        <Image src="/logo.png" alt="logo" width={100} height={100} className='rounded-full' />
-        <div className='flex gap-12 bg-purple-300 p-4 px-12 rounded-full shadow-md sticky'>
-            <a href="#" className="mr-4 ">home</a>
-            <a href="#" className="mr-4">popular</a>
-            <a href="#" className="mr-4">explore</a>
-            <a href="#" className="mr-4">skills</a>
+    <>
+      <nav className="flex justify-between items-center p-4 lg:px-8 bg-white/95 backdrop-blur-lg shadow-lg sticky top-0 z-50 border-b border-purple-100">
+        {/* Logo Section */}
+        <Link href="/home" className="flex items-center gap-3 group">
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full blur opacity-30 group-hover:opacity-50 transition-opacity duration-300"></div>
+            <Image 
+              src="/logo.png" 
+              alt="SkillSwap Logo" 
+              width={60} 
+              height={60} 
+              className='relative rounded-full group-hover:scale-110 transition-all duration-300 shadow-lg' 
+            />
+          </div>
+          <div className="hidden sm:block">
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+              SkillSwap
+            </h1>
+            <p className="text-xs text-gray-500 -mt-1">Learn & Teach</p>
+          </div>
+        </Link>
+        
+        {/* Desktop Navigation */}
+        <div className='hidden lg:flex items-center gap-2 bg-gradient-to-r from-purple-50 to-blue-50 p-2 rounded-2xl shadow-inner border border-purple-100'>
+          {navItems.map((item) => (
+            <Link 
+              key={item.href}
+              href={item.href} 
+              className="group flex items-center gap-2 px-6 py-3 rounded-xl font-medium text-gray-700 hover:text-white hover:bg-gradient-to-r hover:from-purple-600 hover:to-blue-600 transition-all duration-300 hover:shadow-lg hover:scale-105 relative overflow-hidden"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl"></div>
+              <span className="relative z-10 group-hover:text-white transition-colors duration-300">{item.icon}</span>
+              <span className="relative z-10 group-hover:text-white transition-colors duration-300">{item.label}</span>
+            </Link>
+          ))}
         </div>
-        <div className='mx-5'>
-          <a href="/profile" className='flex items-center gap-2 p-3 rounded-full shadow-md bg-black text-white' ><UserPen size={20}/>profile</a>
+        
+        {/* Right Section */}
+        <div className='flex items-center gap-4'>
+          {/* Mobile Menu Button */}
+          <button 
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className='lg:hidden p-3 rounded-xl bg-gradient-to-r from-purple-100 to-blue-100 hover:from-purple-200 hover:to-blue-200 transition-all duration-300 shadow-md hover:shadow-lg'
+          >
+            {isMobileMenuOpen ? 
+              <X className="w-5 h-5 text-purple-600" /> : 
+              <Menu className="w-5 h-5 text-purple-600" />
+            }
+          </button>
+          
+          {/* Profile Button */}
+          <Link href="/profile" className='group flex items-center gap-3 px-6 py-3 rounded-2xl shadow-lg bg-gradient-to-r from-purple-600 via-purple-700 to-blue-600 text-white hover:from-purple-700 hover:via-purple-800 hover:to-blue-700 transition-all duration-300 hover:shadow-xl hover:scale-105 relative overflow-hidden'>
+            <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            <UserPen size={20} className="relative z-10 group-hover:rotate-12 transition-transform duration-300"/>
+            <span className="hidden sm:inline relative z-10 font-semibold">Profile</span>
+          </Link>
         </div>
-    </nav>
+      </nav>
+
+      {/* Mobile Menu Overlay */}
+      {isMobileMenuOpen && (
+        <div className="lg:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)}>
+          <div className="absolute top-20 left-4 right-4 bg-white rounded-3xl shadow-2xl border border-purple-100 p-6 animate-in slide-in-from-top duration-300">
+            <div className="flex flex-col gap-2">
+              {navItems.map((item) => (
+                <Link 
+                  key={item.href}
+                  href={item.href} 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-4 px-6 py-4 rounded-2xl font-medium text-gray-700 hover:text-white hover:bg-gradient-to-r hover:from-purple-600 hover:to-blue-600 transition-all duration-300 hover:shadow-lg group"
+                >
+                  <span className="group-hover:text-white transition-colors duration-300">{item.icon}</span>
+                  <span className="group-hover:text-white transition-colors duration-300">{item.label}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   )
 }
 

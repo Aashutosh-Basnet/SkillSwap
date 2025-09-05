@@ -1,18 +1,10 @@
 @import "tailwindcss";
 
-@theme {
-    --font-family-sans: ["Poppins", "sans-serif"];
-}
-
 @layer base {
-    body {
-        @apply bg-[#f0efff] text-gray-800;
-    }
-}
-
-@plugin "daisyui" {
-    themes: light --default, dark --prefersdark;
+  body {
+    @apply bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200;
   }
+}
 
 @layer utilities {
   .text-balance {

@@ -1,6 +1,6 @@
 "use client";
 
-import { RemoteUser, LocalUser } from "agora-rtc-react";
+import { RemoteUser, LocalUser, AgoraRTCProvider } from "agora-rtc-react";
 import AgoraRTC, {
     IAgoraRTCClient,
     IAgoraRTCRemoteUser,
@@ -27,7 +27,9 @@ const agoraClient = AgoraRTC.createClient({ codec: "vp8", mode: "rtc" });
 
 const VideoCall = ({ appId, channel, token }: VideoCallProps) => {
     return (
-        <Videos channelName={channel} AppID={appId} token={token} client={agoraClient} />
+        <AgoraRTCProvider client={agoraClient}>
+            <Videos channelName={channel} AppID={appId} token={token} client={agoraClient} />
+        </AgoraRTCProvider>
     );
 };
 
@@ -46,7 +48,7 @@ const Videos = (props: VideosProps) => {
     const [micLoading, setMicLoading] = useState(true);
     const [camLoading, setCamLoading] = useState(true);
 
-    const [remoteUser, setRemoteUser] = useState<IAgoraRTCRemoteUser | undefined>();
+    const [remoteUsers, setRemoteUsers] = useState<IAgoraRTCRemoteUser[]>([]);
     const [isJoined, setIsJoined] = useState(false);
     const [isMicMuted, setIsMicMuted] = useState(false);
     const [isCamMuted, setIsCamMuted] = useState(false);
@@ -64,13 +66,38 @@ const Videos = (props: VideosProps) => {
     useEffect(scrollToBottom, [messages]);
 
     useEffect(() => {
-        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+        // Use the same URL detection logic as in the explore page
+        let backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+        
+        if (!backendUrl) {
+            if (typeof window !== 'undefined' && window.location.hostname.includes('devtunnels.ms')) {
+                const tunnelPrefix = window.location.hostname.split('-')[0];
+                backendUrl = `https://${tunnelPrefix}-5000.inc1.devtunnels.ms`;
+            } else {
+                backendUrl = 'http://localhost:5000';
+            }
+        }
+        
+        console.log('VideoCall connecting to backend:', backendUrl);
         const newSocket = io(backendUrl);
         setSocket(newSocket);
 
-        newSocket.emit('joinRoom', channelName);
+        newSocket.on('connect', () => {
+            console.log('VideoCall socket connected');
+            newSocket.emit('joinRoom', channelName);
+            console.log('Joined chat room:', channelName);
+        });
+
+        newSocket.on('disconnect', () => {
+            console.log('VideoCall socket disconnected');
+        });
+
+        newSocket.on('connect_error', (error) => {
+            console.error('VideoCall socket connection error:', error);
+        });
 
         newSocket.on('message', (message: { text: string; sender: string; timestamp: string }) => {
+            console.log('Received chat message:', message);
             setMessages(prev => [...prev, {
                 id: Date.now().toString(),
                 text: message.text,
@@ -86,54 +113,70 @@ const Videos = (props: VideosProps) => {
     }, [channelName]);
 
     useEffect(() => {
-        const handleUserPublished = async (user: IAgoraRTCRemoteUser, mediaType: "audio" | "video") => {
-            await client.subscribe(user, mediaType);
-            if (mediaType === "audio") {
-                user.audioTrack?.play();
-            }
-            setRemoteUser(user);
+        const handleUserPublished = (user: IAgoraRTCRemoteUser, mediaType: "audio" | "video") => {
+            console.log(`🎥 User published ${mediaType}:`, user.uid);
+            setRemoteUsers(prevUsers => {
+                // Avoid duplicating users
+                if (prevUsers.find(u => u.uid === user.uid)) {
+                    // Create a new array reference to trigger re-render
+                    return [...prevUsers];
+                }
+                return [...prevUsers, user];
+            });
         };
 
         const handleUserUnpublished = (user: IAgoraRTCRemoteUser) => {
-             setRemoteUser(undefined);
+            console.log(`🔇 User unpublished:`, user.uid);
+            // The user object is updated in-place by the SDK, so we just need to trigger a re-render
+            setRemoteUsers(prevUsers => [...prevUsers]);
+        };
+
+        const handleUserLeft = (user: IAgoraRTCRemoteUser) => {
+            console.log(`👋 User left:`, user.uid);
+            setRemoteUsers(prevUsers => prevUsers.filter(u => u.uid !== user.uid));
         };
         
-        const handleUserLeft = (user: IAgoraRTCRemoteUser) => {
-            setRemoteUser(undefined);
-        };
+        const joinChannel = async () => {
+            if (isJoined) {
+                console.log("⚠️ Already joined, skipping joinChannel.");
+                return;
+            }
 
-        client.on("user-published", handleUserPublished);
-        client.on("user-unpublished", handleUserUnpublished);
-        client.on("user-left", handleUserLeft);
+            console.log("Starting Agora connection effect");
+            
+            client.on("user-published", handleUserPublished);
+            client.on("user-unpublished", handleUserUnpublished);
+            client.on("user-left", handleUserLeft);
 
-        const joinAndPublish = async () => {
             try {
-                setMicLoading(true);
-                setCamLoading(true);
-
-                const [micTrack, camTrack] = await Promise.all([
-                    AgoraRTC.createMicrophoneAudioTrack(),
-                    AgoraRTC.createCameraVideoTrack(),
-                ]);
+                console.log("Acquiring local tracks...");
+                const [micTrack, camTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
                 
                 setLocalMicrophoneTrack(micTrack);
                 setLocalCameraTrack(camTrack);
                 setMicLoading(false);
                 setCamLoading(false);
-                
+
+                console.log(`🔗 Joining channel: ${channelName}`);
                 await client.join(AppID, channelName, token, null);
-                await client.publish([micTrack, camTrack]);
                 setIsJoined(true);
+                console.log(`✅ Successfully joined channel: ${channelName}`);
+                
+                console.log("Publishing local tracks...");
+                await client.publish([micTrack, camTrack]);
+                console.log("✅ Successfully published tracks");
+
             } catch (error) {
                 console.error("Agora client connection error:", error);
+                setMicLoading(false);
+                setCamLoading(false);
             }
         };
 
-        if (token) {
-            joinAndPublish();
-        }
+        joinChannel();
 
         return () => {
+            console.log("Cleaning up Agora connection effect");
             client.off("user-published", handleUserPublished);
             client.off("user-unpublished", handleUserUnpublished);
             client.off("user-left", handleUserLeft);
@@ -141,9 +184,15 @@ const Videos = (props: VideosProps) => {
             localMicrophoneTrack?.close();
             localCameraTrack?.close();
 
-            client.leave();
+            // Check connection state before trying to leave
+            if (client.connectionState === "CONNECTED") {
+                client.leave().catch(err => console.warn("Error leaving channel:", err));
+            }
+            // Reset joined state regardless
+            setIsJoined(false);
         };
-    }, [client, AppID, channelName, token]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [AppID, channelName, client, token]); // Dependencies that re-trigger the connection
 
     const toggleMic = async () => {
         if (localMicrophoneTrack) {
@@ -170,6 +219,7 @@ const Videos = (props: VideosProps) => {
                 room: channelName
             };
             
+            console.log('Sending chat message:', message);
             socket.emit('sendMessage', message);
             
             setMessages(prev => [...prev, {
@@ -180,6 +230,12 @@ const Videos = (props: VideosProps) => {
             }]);
             
             setNewMessage("");
+        } else {
+            console.log('Cannot send message:', { 
+                hasMessage: !!newMessage.trim(), 
+                hasSocket: !!socket, 
+                socketConnected: socket?.connected 
+            });
         }
     };
     
@@ -190,30 +246,49 @@ const Videos = (props: VideosProps) => {
         }
     };
     
+    // Get the primary remote user to display
+    const remoteUser = remoteUsers[0];
+
     return (
         <div className="w-full h-screen flex bg-gray-900 text-white">
             <div className="flex-1 flex flex-col">
+                {/* Debug info - remove in production */}
+                <div className="bg-gray-800 p-2 m-2 rounded text-xs">
+                    <div>Local Cam: {localCameraTrack ? '✅' : '❌'} | Remote Users: {remoteUsers.length} | Remote Video: {remoteUser?.hasVideo ? '✅' : '❌'}</div>
+                    <div>Channel: {channelName} | Joined: {isJoined ? '✅' : '❌'} | Connection: {client.connectionState}</div>
+                </div>
                 <div className="relative flex-1 bg-black rounded-lg m-2 overflow-hidden">
-                    {remoteUser?.videoTrack ? (
-                        <RemoteUser user={remoteUser as any} playVideo={true} />
+                    {remoteUser?.hasVideo ? (
+                        <RemoteUser user={remoteUser} playVideo={true} key={remoteUser.uid} />
                     ) : (
                         <div className="w-full h-full flex items-center justify-center text-gray-400">
                             <div className="text-center">
                                 <svg className="mx-auto h-12 w-12 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                     <path vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.55a1 1 0 011.45.89V18.1a1 1 0 01-1.45.89L15 14M4 6h10a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2z" />
                                 </svg>
-                                <h3 className="mt-2 text-sm font-medium text-white">Waiting for partner</h3>
-                                <p className="mt-1 text-sm text-gray-500">You'll see their video here when they connect.</p>
+                                <h3 className="mt-2 text-sm font-medium text-white">
+                                    {isJoined ? 'Waiting for partner...' : 'Connecting...'}
+                                </h3>
+                                <p className="mt-1 text-sm text-gray-500">
+                                    {isJoined && remoteUser ? 'Partner video is currently unavailable.' : "You'll see their video here when they connect."}
+                                </p>
                             </div>
                         </div>
                     )}
                     <div className="absolute bottom-4 right-4 w-48 h-32 bg-gray-800 rounded-lg overflow-hidden border-2 border-gray-700">
-                        {localCameraTrack && (
+                        {localCameraTrack ? (
                             <LocalUser
-                                videoTrack={localCameraTrack as any}
+                                videoTrack={localCameraTrack}
                                 cameraOn={!isCamMuted}
                                 micOn={!isMicMuted}
                             />
+                        ) : (
+                            <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                <div className="text-center">
+                                    <div className="text-2xl mb-1">📷</div>
+                                    <div className="text-xs">Camera unavailable</div>
+                                </div>
+                            </div>
                         )}
                     </div>
                 </div>
@@ -221,27 +296,54 @@ const Videos = (props: VideosProps) => {
                 <div className="flex justify-center items-center gap-4 p-4 bg-gray-800 m-2 rounded-lg">
                     <button 
                         onClick={toggleMic}
-                        disabled={micLoading}
+                        disabled={micLoading || !localMicrophoneTrack}
                         className={`p-3 rounded-full text-white transition-colors ${
+                            !localMicrophoneTrack ? 'bg-gray-600 cursor-not-allowed' :
                             isMicMuted ? 'bg-red-500 hover:bg-red-600' : 'bg-gray-700 hover:bg-gray-600'
                         } disabled:opacity-50`}
+                        title={!localMicrophoneTrack ? 'Microphone not available' : ''}
                     >
-                        {isMicMuted ? '🔇' : '🎤'}
+                        {!localMicrophoneTrack ? '🚫🎤' : isMicMuted ? '🔇' : '🎤'}
                     </button>
                     <button 
                         onClick={toggleCam}
-                        disabled={camLoading}
+                        disabled={camLoading || !localCameraTrack}
                         className={`p-3 rounded-full text-white transition-colors ${
+                            !localCameraTrack ? 'bg-gray-600 cursor-not-allowed' :
                             isCamMuted ? 'bg-red-500 hover:bg-red-600' : 'bg-gray-700 hover:bg-gray-600'
                         } disabled:opacity-50`}
+                        title={!localCameraTrack ? 'Camera not available' : ''}
                     >
-                        {isCamMuted ? 'unmute' : 'mute'}
+                        {!localCameraTrack ? '🚫📷' : isCamMuted ? 'unmute' : 'mute'}
                     </button>
                     <button
                         onClick={() => setIsChatVisible(!isChatVisible)}
                         className="p-3 rounded-full text-white transition-colors bg-gray-700 hover:bg-gray-600"
                     >
                         💬
+                    </button>
+                    <button
+                        onClick={() => {
+                            console.log('🔧 DEBUG INFO:');
+                            console.log('Local tracks:', { mic: localMicrophoneTrack, cam: localCameraTrack });
+                            console.log('All Remote Users:', remoteUsers.map(u => ({ uid: u.uid, hasVideo: u.hasVideo, hasAudio: u.hasAudio })));
+                            console.log('Client state:', client.connectionState);
+                            console.log('Joined:', isJoined);
+                            
+                            // Try to refresh remote user subscription
+                            if (remoteUser && client.connectionState === "CONNECTED") {
+                                console.log('🔄 Attempting to resubscribe to remote user...');
+                                client.subscribe(remoteUser, "video").then(() => {
+                                    console.log('✅ Resubscribed to video');
+                                    // Force re-render by creating a new array
+                                    setRemoteUsers(prev => [...prev]);
+                                }).catch(err => console.error('❌ Resubscribe failed:', err));
+                            }
+                        }}
+                        className="p-3 rounded-full text-white transition-colors bg-yellow-600 hover:bg-yellow-700"
+                        title="Debug video issues"
+                    >
+                        🔧
                     </button>
                 </div>
             </div>

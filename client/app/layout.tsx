@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
 import "./globals.css";
 import AuthGuard from "./components/auth/AuthGuard";
+import Navbar from "./components/Navbar";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -23,7 +24,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${poppins.variable}`}>
-        <AuthGuard>{children}</AuthGuard>
+        <AuthGuard>
+          <Navbar />
+          {children}
+        </AuthGuard>
       </body>
     </html>
   );
