@@ -60,4 +60,4 @@ function authenticateToken(req, res, next){
     });
 }
 
-export default authenticateToken;
+export { authenticateToken };

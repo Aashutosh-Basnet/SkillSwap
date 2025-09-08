@@ -1,18 +1,45 @@
 "use client";
 
 import React from 'react'
-import { UserPen, Home, Info, Zap, Compass, Menu, X } from 'lucide-react';
+import { UserPen, Home, Info, Zap, GraduationCap, BookOpen, Menu, X, CreditCard } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 
 const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+  const [credits, setCredits] = React.useState<number>(0);
+
+  // Fetch user credits
+  React.useEffect(() => {
+    const fetchCredits = async () => {
+      try {
+        const token = localStorage.getItem('authToken');
+        if (!token) return;
+
+        const response = await fetch('/api/teach/credits', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setCredits(data.credits);
+        }
+      } catch (error) {
+        console.error('Error fetching credits:', error);
+      }
+    };
+
+    fetchCredits();
+  }, []);
 
   const navItems = [
     { href: '/home', label: 'Home', icon: <Home size={18} /> },
     { href: '/about', label: 'About', icon: <Info size={18} /> },
     { href: '/skills', label: 'Skills', icon: <Zap size={18} /> },
-    { href: '/explore', label: 'Explore', icon: <Compass size={18} /> },
+    { href: '/learn', label: 'Learn', icon: <BookOpen size={18} /> },
+    { href: '/teach', label: 'Teach', icon: <GraduationCap size={18} /> },
   ];
 
   return (
@@ -55,6 +82,14 @@ const Navbar = () => {
         
         {/* Right Section */}
         <div className='flex items-center gap-4'>
+          {/* Credits Display */}
+          <div className='hidden sm:flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-100 to-emerald-100 rounded-xl shadow-md'>
+            <CreditCard className="w-4 h-4 text-green-600" />
+            <span className="text-sm font-semibold text-green-700">
+              {credits} Credits
+            </span>
+          </div>
+
           {/* Mobile Menu Button */}
           <button 
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -79,6 +114,14 @@ const Navbar = () => {
       {isMobileMenuOpen && (
         <div className="lg:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)}>
           <div className="absolute top-20 left-4 right-4 bg-white rounded-3xl shadow-2xl border border-purple-100 p-6 animate-in slide-in-from-top duration-300">
+            {/* Credits Display for Mobile */}
+            <div className='flex items-center justify-center gap-2 px-4 py-3 mb-4 bg-gradient-to-r from-green-100 to-emerald-100 rounded-xl shadow-md'>
+              <CreditCard className="w-4 h-4 text-green-600" />
+              <span className="text-sm font-semibold text-green-700">
+                {credits} Credits
+              </span>
+            </div>
+            
             <div className="flex flex-col gap-2">
               {navItems.map((item) => (
                 <Link 

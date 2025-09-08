@@ -46,6 +46,12 @@ const userSchema = new mongoose.Schema({
     },
     previous_meeting: {
         type: [String],
+    },
+    skillswap_credits: {
+        type: Number,
+        required: true,
+        default: 5,
+        min: 0
     }
 },
     {timestamps: true}

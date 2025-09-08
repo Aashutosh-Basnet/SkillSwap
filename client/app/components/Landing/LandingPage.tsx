@@ -90,7 +90,7 @@ const HeroSection = () => (
                     learn new skills, and share your expertise with passionate learners worldwide.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
-                    <Link href="/login">
+                    <Link href="/home">
                         <button className="group relative px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold text-lg rounded-2xl transform transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/25">
                             <span className="relative z-10">Start Learning Today</span>
                             <div className="absolute inset-0 bg-gradient-to-r from-purple-700 to-pink-700 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>

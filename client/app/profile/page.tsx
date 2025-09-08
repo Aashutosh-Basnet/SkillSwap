@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { TProfileUpdateSchema, profileUpdateSchema } from '@/lib/types';
 import authService from '@/lib/auth';
 import { useRouter } from 'next/navigation';
-import { Mail, Pencil, Calendar, Star, Save, X, Plus, Trash2, User, BookOpen, GraduationCap, Camera } from 'lucide-react';
+import { Mail, Pencil, Calendar, Star, Save, X, Plus, Trash2, User, BookOpen, GraduationCap, Camera, CreditCard } from 'lucide-react';
 
 // Helper function to convert file to base64
 const convertFileToBase64 = (file: File): Promise<string> => {
@@ -29,6 +29,7 @@ interface UserProfile {
   about?: string;
   learning_skills: string[];
   teaching_skills: string[];
+  skillswap_credits: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -465,6 +466,14 @@ const ProfilePage = () => {
               )}
               
               <p className="text-gray-400 mt-2">@{user.username}</p>
+              
+              {/* Credits Display */}
+              <div className="flex items-center justify-center gap-2 mt-4 px-4 py-2 bg-gradient-to-r from-green-100 to-emerald-100 rounded-xl shadow-md max-w-fit mx-auto">
+                <CreditCard className="w-5 h-5 text-green-600" />
+                <span className="font-semibold text-green-700">
+                  {user.skillswap_credits} SkillSwap Credits
+                </span>
+              </div>
               
               <div className="flex justify-center gap-4 mt-6">
                 {!isEditing ? (

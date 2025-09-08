@@ -86,3 +86,16 @@ export const profileUpdateSchema = z.object({
 export type TProfileUpdateSchema = z.infer<typeof profileUpdateSchema>;
 export type TSignInSchema = z.infer<typeof signInSchema>;
 export type TSignUpSchema = z.infer<typeof signUpSchema>;
+
+// User interface for API responses
+export interface IUser {
+  id: string;
+  username: string;
+  fullname: string;
+  email: string;
+  avatar?: string;
+  about?: string;
+  learning_skills: string[];
+  teaching_skills: string[];
+  skillswap_credits: number;
+}

@@ -92,7 +92,8 @@ export const register = async (req, res) => {
         avatar: newUser.avatar,
         about: newUser.about,
         learning_skills: newUser.learning_skills,
-        teaching_skills: newUser.teaching_skills
+        teaching_skills: newUser.teaching_skills,
+        skillswap_credits: newUser.skillswap_credits
       }
     });
   } catch (error) {
@@ -158,7 +159,10 @@ export const login = async (req, res) => {
         fullname: existingUser.fullname,
         email: existingUser.email,
         avatar: existingUser.avatar,
-        about: existingUser.about
+        about: existingUser.about,
+        learning_skills: existingUser.learning_skills,
+        teaching_skills: existingUser.teaching_skills,
+        skillswap_credits: existingUser.skillswap_credits
       }
     });
   } catch (error) {
